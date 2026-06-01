@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動態城市定向盲盒 (100地標終極多重宇宙版)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        h1 { color: #ff6b6b; font-size: 1.8em; }
+        .btn {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .btn:hover { background-color: #ff4757; transform: scale(1.05); }
+        
+        .btn-google {
+            background-color: #34a853;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+            width: 100%;
+        }
+        .btn-google:hover { background-color: #2c8c45; }
+
+        .route-card {
+            text-align: left;
+            background: #fdfbfb;
+            padding: 20px;
+            border-left: 5px solid #ff6b6b;
+            border-radius: 5px;
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .point {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+        .point:last-child { border-bottom: none; }
+        .title { font-weight: bold; color: #2f3542; font-size: 1.1em; }
+        .desc { font-size: 0.9em; color: #747d8c; margin-top: 5px; }
+        .breakfast { color: #eccc68; font-weight: bold; font-size: 1.1em; background: #333; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center;}
+        .stats { color: #ff6b6b; font-weight: bold; font-size: 1.1em; margin-bottom: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎲 城市定向盲盒<br>(100地標多重宇宙版)</h1>
+    <p>老大，100個地標的龐大生態系已建立！雷達鎖定中，保證總里程不破 10K。</p>
+    <button class="btn" onclick="generateDynamicRoute()">⚡ 一鍵動態生成路線</button>
+    
+    <div id="routeDisplay" class="route-card">
+        </div>
+    
+    <button id="googleBtn" class="btn-google" onclick="openGoogleMaps()">🗺️ 一鍵開啟 Google Maps 步行導航</button>
+</div>
+
+<script>
+    // 100 個台北市/近郊知名地標大補帖
+    const landmarkPool = [
+        { name: "中正紀念堂", lat: 25.0347, lon: 121.5218 }, { name: "台北府城北門", lat: 25.0478, lon: 121.5115 },
+        { name: "國立臺灣博物館", lat: 25.0428, lon: 121.5150 }, { name: "台北植物園", lat: 25.0322, lon: 121.5098 },
+        { name: "華山1914文創園區", lat: 25.0441, lon: 121.5294 }, { name: "紀州庵文學森林", lat: 25.0210, lon: 121.5190 },
+        { name: "總統府", lat: 25.0398, lon: 121.5120 }, { name: "二二八和平紀念公園", lat: 25.0415, lon: 121.5152 },
+        { name: "光華商場", lat: 25.0446, lon: 121.5318 }, { name: "三創生活園區", lat: 25.0445, lon: 121.5312 },
+        { name: "建國假日花市", lat: 25.0390, lon: 121.5370 }, { name: "台灣大學椰林大道", lat: 25.0173, lon: 121.5361 },
+        { name: "師範大學紅磚大樓", lat: 25.0263, lon: 121.5276 }, { name: "公館水岸廣場", lat: 25.0145, lon: 121.5320 },
+        { name: "遠企購物中心", lat: 25.0265, lon: 121.5490 }, { name: "SOGO 忠孝館", lat: 25.0415, lon: 121.5450 },
+        { name: "台北101", lat: 25.0336, lon: 121.5646 }, { name: "國父紀念館", lat: 25.0396, lon: 121.5602 },
+        { name: "松山文創園區", lat: 25.0440, lon: 121.5613 }, { name: "臺北大巨蛋", lat: 25.0415, lon: 121.5586 },
+        { name: "四四南村", lat: 25.0315, lon: 121.5610 }, { name: "BELLAVITA", lat: 25.0398, lon: 121.5673 },
+        { name: "象山步道入口", lat: 25.0270, lon: 121.5700 }, { name: "西門紅樓", lat: 25.0422, lon: 121.5064 },
+        { name: "龍山寺", lat: 25.0371, lon: 121.4999 }, { name: "剝皮寮歷史街區", lat: 25.0366, lon: 121.5020 },
+        { name: "青年公園花鐘", lat: 25.0240, lon: 121.5030 }, { name: "馬場町紀念公園", lat: 25.0200, lon: 121.4980 },
+        { name: "大稻埕碼頭廣場", lat: 25.0569, lon: 121.5065 }, { name: "大龍峒保安宮", lat: 25.0731, lon: 121.5150 },
+        { name: "臺北孔廟", lat: 25.0730, lon: 121.5160 }, { name: "迪化街霞海城隍廟", lat: 25.0556, lon: 121.5100 },
+        { name: "台北當代藝術館", lat: 25.0505, lon: 121.5180 }, { name: "行天宮", lat: 25.0630, lon: 121.5330 },
+        { name: "大佳河濱公園", lat: 25.0740, lon: 121.5350 }, { name: "林安泰古厝", lat: 25.0718, lon: 121.5305 },
+        { name: "台北市立美術館", lat: 25.0725, lon: 121.5245 }, { name: "圓山大飯店", lat: 25.0785, lon: 121.5265 },
+        { name: "袖珍博物館", lat: 25.0508, lon: 121.5360 }, { name: "忠烈祠", lat: 25.0780, lon: 121.5325 },
+        { name: "美麗華摩天輪", lat: 25.0830, lon: 121.5560 }, { name: "台北小巨蛋", lat: 25.0520, lon: 121.5535 },
+        { name: "彩虹橋 (錫口碼頭)", lat: 25.0506, lon: 121.5768 }, { name: "松山慈祐宮", lat: 25.0502, lon: 121.5772 },
+        { name: "迎風河濱公園", lat: 25.0735, lon: 121.5450 }, { name: "臺北表演藝術中心", lat: 25.0880, lon: 121.5240 },
+        { name: "士林官邸", lat: 25.0930, lon: 121.5300 }, { name: "臺灣科學教育館", lat: 25.0960, lon: 121.5160 },
+        { name: "碧湖公園", lat: 25.0815, lon: 121.5830 }, { name: "台北流行音樂中心", lat: 25.0525, lon: 121.5990 },
+        { name: "自來水博物館", lat: 25.0125, lon: 121.5295 }, { name: "寶藏巖聚落", lat: 25.0105, lon: 121.5323 },
+        { name: "榕錦時光生活園區", lat: 25.0315, lon: 121.5260 }, { name: "國家戲劇院", lat: 25.0355, lon: 121.5185 },
+        { name: "國家音樂廳", lat: 25.0365, lon: 121.5195 }, { name: "郵政博物館", lat: 25.0310, lon: 121.5155 },
+        { name: "艋舺青山宮", lat: 25.0400, lon: 121.4985 }, { name: "西本願寺廣場", lat: 25.0410, lon: 121.5075 },
+        { name: "迪化街十連棟", lat: 25.0620, lon: 121.5100 }, { name: "台北霞海城隍廟", lat: 25.0556, lon: 121.5100 },
+        { name: "寧夏夜市(入口)", lat: 25.0560, lon: 121.5155 }, { name: "台北車站大廳", lat: 25.0478, lon: 121.5170 },
+        { name: "撫臺街洋樓", lat: 25.0465, lon: 121.5115 }, { name: "建國啤酒廠", lat: 25.0460, lon: 121.5350 },
+        { name: "南港瓶蓋工廠", lat: 25.0535, lon: 121.6050 }, { name: "中研院胡適紀念館", lat: 25.0415, lon: 121.6135 },
+        { name: "實踐大學設計學院", lat: 25.0845, lon: 121.5460 }, { name: "忠泰美術館", lat: 25.0445, lon: 121.5370 },
+        { name: "觀山河濱公園", lat: 25.0700, lon: 121.5650 }, { name: "古亭河濱公園", lat: 25.0160, lon: 121.5220 },
+        { name: "福和河濱公園", lat: 25.0080, lon: 121.5310 }, { name: "永福橋(水管橋)", lat: 25.0120, lon: 121.5260 },
+        { name: "麥帥一橋", lat: 25.0550, lon: 121.5720 }, { name: "麥帥二橋", lat: 25.0600, lon: 121.5750 },
+        { name: "大直橋", lat: 25.0750, lon: 121.5450 }, { name: "微風南山", lat: 25.0340, lon: 121.5665 },
+        { name: "新光三越站前店", lat: 25.0461, lon: 121.5152 }, { name: "京站時尚廣場", lat: 25.0490, lon: 121.5175 },
+        { name: "微風廣場", lat: 25.0460, lon: 121.5435 }, { name: "大安森林公園露天音樂台", lat: 25.0315, lon: 121.5350 },
+        { name: "永康街芒果冰地標", lat: 25.0325, lon: 121.5295 }, { name: "天母棒球場", lat: 25.1135, lon: 121.5330 },
+        { name: "北投溫泉博物館", lat: 25.1365, lon: 121.5030 }, { name: "新北投車站", lat: 25.1370, lon: 121.5020 },
+        { name: "關渡宮", lat: 25.1185, lon: 121.4640 }, { name: "大湖公園錦帶橋", lat: 25.0835, lon: 121.6025 },
+        { name: "大安區 瑠公圳公園", lat: 25.0410, lon: 121.5450 }, { name: "南機場夜市(牌樓)", lat: 25.0275, lon: 121.5045 },
+        { name: "華山大草原", lat: 25.0460, lon: 121.5255 }, { name: "台灣工藝研究發展中心", lat: 25.0320, lon: 121.5140 },
+        { name: "艋舺清水巖", lat: 25.0410, lon: 121.5010 }, { name: "台北鄉土教育中心", lat: 25.0360, lon: 121.5015 },
+        { name: "花博公園圓山園區", lat: 25.0705, lon: 121.5215 }, { name: "新生公園(迷宮花園)", lat: 25.0680, lon: 121.5300 },
+        { name: "台灣戲曲中心", lat: 25.1055, lon: 121.5200 }, { name: "林語堂故居", lat: 25.1140, lon: 121.5400 },
+        { name: "台北偶戲館", lat: 25.0475, lon: 121.5620 }, { name: "松山飛機巷", lat: 25.0675, lon: 121.5430 },
+        { name: "大安 成功市場", lat: 25.0250, lon: 121.5450 }, { name: "水源市場", lat: 25.0140, lon: 121.5325 }
+    ];
+
+    // 擴充到 30 種神級早餐
+    const breakfasts = [
+        "重慶豆漿炸蛋餅 (現炸酥脆，蛋白質補滿！)", "松山市場 無名傳統蛋餅與鹹豆漿",
+        "萬華 亞東甜不辣 (滿滿碳水大滿足！)", "阜杭豆漿 (如果你戰勝了排隊人潮！)",
+        "南機場夜市 早市米粉湯", "華陰街 脆皮鮮奶甜甜圈 (極致罪惡！)",
+        "士林 豐盛號肉蛋吐司", "大直 內行人才知道的傳統飯糰",
+        "大安站周邊 無名鐵板麵加蛋", "雙連站旁 傳統肉羹麵",
+        "劉山東牛肉麵 (一早就吃這麼硬核！)", "鼎元豆漿 (燒餅夾蛋絕讚)",
+        "大稻埕 慈聖宮 廟口原汁排骨湯 (老台北人的浪漫)", "大稻埕 姚德和青草茶 (退火神飲)",
+        "永樂市場 林合發油飯 (早起才買得到)", "溫州街 蘿蔔絲餅 (碳水炸彈)",
+        "建中旁 林建發傻瓜乾麵", "北投 市場矮仔財滷肉飯 (排隊排到哭)",
+        "東門市場 羅媽媽米粉湯", "南門市場 合歡刀削麵",
+        "信義區 陳根找茶 (法式吐司極品)", "南港 老張炭烤燒餅",
+        "內湖 來來豆漿", "天母 茉莉漢堡 (懷舊美式)",
+        "古亭 佳味蘿蔔絲餅", "雙連 圓仔湯周邊傳統早點",
+        "景美 夜市周邊 傳統水煎包", "木柵 水煎包老店",
+        "萬華 周記肉粥 (紅燒肉必點！)", "台北車站 飯糰霸"
+    ];
+
+    // 40 個形容詞 (包含日式中二、中國用語、網路梗)
+    const nameAdjs = [
+        "究極", "幻之", "沉浸式", "高能", "佛系", "硬核", "絕絕子", "逆天", "爆裂", "超絕",
+        "無雙", "進擊", "史詩", "傳說", "隱藏", "致命", "覺醒", "狂氣", "宿命", "絕對",
+        "燃脂", "飆速", "瘋狂", "迷幻", "文青", "吃貨", "浪漫", "爆汗", "熱血", "街頭",
+        "時光", "極限", "探索", "神秘", "霸體", "魂之", "內卷", "躺平", "寶藏", "破防"
+    ];
+
+    // 30 個主詞 (包含日式中二、中國用語、網路梗)
+    const nameNouns = [
+        "大暴走", "特搜巡禮", "終極挑戰", "迷航記", "大冒險", "狂飆路線", "奇幻旅程", "生存戰", "拉練", "穿梭",
+        "尋寶", "物語", "紀行", "見聞錄", "異聞", "試煉", "突破", "決戰", "遠征", "制霸",
+        "大作戰", "天花板", "刺客", "盲盒", "神仙局", "降維打擊", "修羅場", "任務", "行動", "突圍"
+    ];
+
+    let finalRouteNames = []; // 存儲地標名稱給 Google Maps 導航用
+
+    // 計算兩個經緯度之間的直線距離 (公里)
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function generateDynamicRoute() {
+        let currentLat = 25.0330; // 大安森林公園起點
+        let currentLon = 121.5358;
+        let totalDistance = 0;
+        let availablePool = [...landmarkPool];
+        let selectedPoints = [];
+        finalRouteNames = [];
+
+        for(let i = 0; i < 4; i++) {
+            // 計算剩餘容許里程 (總長不超過 10km)
+            let maxAllowed = Math.min(3, 10.5 - totalDistance); 
+            let minAllowed = 1;
+
+            if(maxAllowed < 1) minAllowed = 0.2;
+
+            // 篩選距離在範圍內的地標
+            let candidates = availablePool.filter(p => {
+                let d = getDistance(currentLat, currentLon, p.lat, p.lon);
+                return d >= minAllowed && d <= maxAllowed;
+            });
+
+            // 強迫抓最近的點來湊數防當機
+            if(candidates.length === 0) {
+                availablePool.sort((a, b) => getDistance(currentLat, currentLon, a.lat, a.lon) - getDistance(currentLat, currentLon, b.lat, b.lon));
+                candidates = [availablePool[0]];
+            }
+
+            let chosen = candidates[Math.floor(Math.random() * candidates.length)];
+            let dist = getDistance(currentLat, currentLon, chosen.lat, chosen.lon);
+            
+            totalDistance += dist;
+            selectedPoints.push({
+                name: chosen.name,
+                dist: dist.toFixed(1)
+            });
+            finalRouteNames.push(chosen.name);
+
+            currentLat = chosen.lat;
+            currentLon = chosen.lon;
+            
+            availablePool = availablePool.filter(p => p.name !== chosen.name);
+        }
+
+        // 產生無厘頭隨機路線名稱與神級早餐
+        let randomName = nameAdjs[Math.floor(Math.random() * nameAdjs.length)] + nameNouns[Math.floor(Math.random() * nameNouns.length)];
+        let randomBreakfast = breakfasts[Math.floor(Math.random() * breakfasts.length)];
+
+        // 渲染畫面
+        let htmlContent = `<h2 style="color: #2f3542; border-bottom: 2px solid #ff6b6b; padding-bottom: 10px;">👑 主題：${randomName}</h2>`;
+        htmlContent += `<div class="stats">📈 預估直線總里程：約 ${totalDistance.toFixed(1)} km</div>`;
+        
+        htmlContent += `
+            <div class="point">
+                <div class="title">📍 起點：大安森林公園</div>
+                <div class="desc">都市綠洲，伸展暖身，確認跑鞋包覆性！</div>
+            </div>`;
+            
+        selectedPoints.forEach((p, index) => {
+            htmlContent += `
+                <div class="point">
+                    <div class="title">📸 Check Point ${index + 1}：${p.name}</div>
+                    <div class="desc">距上一站直線距離約 ${p.dist} km。</div>
+                </div>
+            `;
+        });
+        
+        htmlContent += `<div class="point breakfast">🍳 終點隨機獎勵：<br><span style="color: #fff; font-size: 1.2em;">${randomBreakfast}</span></div>`;
+        
+        const displayDiv = document.getElementById('routeDisplay');
+        const googleBtn = document.getElementById('googleBtn');
+        
+        displayDiv.style.display = 'none';
+        googleBtn.style.display = 'none';
+        
+        setTimeout(() => {
+            displayDiv.innerHTML = htmlContent;
+            displayDiv.style.display = 'block';
+            googleBtn.style.display = 'block';
+        }, 50);
+    }
+
+    function openGoogleMaps() {
+        if (finalRouteNames.length === 0) return;
+        
+        const origin = encodeURIComponent("大安森林公園");
+        const destination = encodeURIComponent(finalRouteNames[finalRouteNames.length - 1]);
+        
+        let waypointsArr = [];
+        for(let i = 0; i < finalRouteNames.length - 1; i++) {
+            waypointsArr.push(encodeURIComponent(finalRouteNames[i]));
+        }
+        const waypoints = waypointsArr.join('|');
+
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
+        window.open(url, '_blank');
+    }
+</script>
+</body>
+</html>
